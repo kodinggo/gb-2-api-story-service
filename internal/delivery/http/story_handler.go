@@ -82,12 +82,9 @@ func (s *StoryHandler) GetStory(c echo.Context) error {
 	id := c.Param("id")
 	parsedId, err := strconv.Atoi(id)
 
-	statusBadRequest := strconv.Itoa(http.StatusBadRequest)
-	statusInternalServerErr := strconv.Itoa(http.StatusInternalServerError)
-
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, response{
-			Status:  statusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: err.Error(),
 		})
 	}
@@ -95,7 +92,7 @@ func (s *StoryHandler) GetStory(c echo.Context) error {
 	story, err := s.storyUsecase.FindById(c.Request().Context(), int64(parsedId))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, response{
-			Status:  statusInternalServerErr,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		})
 	}
@@ -109,26 +106,22 @@ func (s *StoryHandler) GetStory(c echo.Context) error {
 func (s *StoryHandler) CreateStory(c echo.Context) error {
 	var input model.CreateStoryInput
 
-	statusBadRequest := strconv.Itoa(http.StatusBadRequest)
-	statusInternalServerErr := strconv.Itoa(http.StatusInternalServerError)
-	statusCreated := strconv.Itoa(http.StatusCreated)
-
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, response{
-			Status:  statusBadRequest,
+			Status:  http.StatusBadRequest,
 			Message: err.Error(),
 		})
 	}
 
 	if err := s.storyUsecase.Create(c.Request().Context(), input); err != nil {
 		return c.JSON(http.StatusInternalServerError, response{
-			Status:  statusInternalServerErr,
+			Status:  http.StatusInternalServerError,
 			Message: err.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusCreated, response{
-		Status:  statusCreated,
-		Message: "Success",
+		Status:  http.StatusCreated,
+		Message: "Success Create Story",
 	})
 }
