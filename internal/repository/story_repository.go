@@ -20,7 +20,6 @@ func NewStoryRepo(db *sql.DB) model.IStoryRepository {
 }
 
 func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
-	// TODO: implement find all story
 	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id LIMIT ? OFFSET ?`
 
 	// Execute query
@@ -79,11 +78,7 @@ func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*m
 }
 
 func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error) {
-
-	// TODO: implement find by id story
-
-	query := `
-    SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.id = ? LIMIT 1`
+	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.id = ? LIMIT 1`
 
 	// Execute query to fetch one story by id
 	res, err := s.db.QueryContext(ctx, query, id)
@@ -119,8 +114,6 @@ func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error
 }
 
 func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
-
-	// TODO: implement create story
 	var exists bool
 	// Checks if a category with the matching id exists
 	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)`, story.Category.Id).Scan(&exists)
@@ -143,8 +136,6 @@ func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
 }
 
 func (s *StoryRepo) Delete(ctx context.Context, id int64) error {
-	// TODO: implement delete story
-
 	_, err := s.db.ExecContext(ctx, `DELETE FROM stories WHERE id = ?`, id)
 	if err != nil {
 		return err

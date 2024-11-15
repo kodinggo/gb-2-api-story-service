@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/kodinggo/gb-2-api-story-service/db"
-	"github.com/kodinggo/gb-2-api-story-service/internal/config"
 	handlerHttp "github.com/kodinggo/gb-2-api-story-service/internal/delivery/http"
 	"github.com/kodinggo/gb-2-api-story-service/internal/repository"
 	"github.com/kodinggo/gb-2-api-story-service/internal/usecase"
@@ -24,9 +23,6 @@ var serverCMD = &cobra.Command{
 }
 
 func httpServer(cmd *cobra.Command, args []string) {
-
-	config.LoadWithViper()
-
 	mysql := db.NewMysql()
 	defer mysql.Close()
 
@@ -36,9 +32,9 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	e := echo.New()
 
-	routeGroup := e.Group("/v1")
+	routeStories := e.Group("/v1/stories")
 
-	handlerHttp.NewStoryHandler(routeGroup, storyUsecase)
+	handlerHttp.NewStoryHandler(routeStories, storyUsecase)
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)

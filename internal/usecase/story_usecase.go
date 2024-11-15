@@ -23,7 +23,6 @@ func NewStoryUsecase(
 }
 
 func (s *StoryUsecase) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
-
 	log := logrus.WithFields(logrus.Fields{
 		"ctx":    ctx,
 		"limit":  filter.Limit,
@@ -40,7 +39,6 @@ func (s *StoryUsecase) FindAll(ctx context.Context, filter model.StoryFilter) ([
 }
 
 func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, error) {
-
 	log := logrus.WithFields(logrus.Fields{
 		"ctx": ctx,
 		"id":  id,
@@ -56,7 +54,6 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 }
 
 func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) error {
-
 	log := logrus.WithFields(logrus.Fields{
 		"ctx":           ctx,
 		"title":         in.Title,
