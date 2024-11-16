@@ -21,6 +21,7 @@ func Execute() {
 }
 
 func init() {
+	config.LoadWithViper()
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	config.SetupLogger()
 }
