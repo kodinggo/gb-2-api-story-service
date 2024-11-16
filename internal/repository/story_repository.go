@@ -20,7 +20,7 @@ func NewStoryRepo(db *sql.DB) model.IStoryRepository {
 }
 
 func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
-	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id LIMIT ? OFFSET ?`
+	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.deleted_at IS NULL ORDER BY s.created_at DESC LIMIT ? OFFSET ?`
 
 	// Execute query
 	res, err := s.db.QueryContext(ctx, query, filter.Limit, filter.Offset)
@@ -74,11 +74,10 @@ func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*m
 	}
 
 	return stories, nil
-
 }
 
 func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error) {
-	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.id = ? LIMIT 1`
+	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at, s.deleted_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.id = ? LIMIT 1`
 
 	// Execute query to fetch one story by id
 	res, err := s.db.QueryContext(ctx, query, id)
@@ -93,8 +92,9 @@ func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error
 		var categoryId sql.NullInt64
 		var categoryName sql.NullString
 		var createdAt, updatedAt time.Time
+		var deletedAt sql.NullTime
 
-		if err := res.Scan(&story.Id, &story.Title, &story.Content, &story.ThumbnailUrl, &categoryId, &categoryName, &createdAt, &updatedAt); err != nil {
+		if err := res.Scan(&story.Id, &story.Title, &story.Content, &story.ThumbnailUrl, &categoryId, &categoryName, &createdAt, &updatedAt, &deletedAt); err != nil {
 			return nil, err
 		}
 
@@ -107,14 +107,15 @@ func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error
 
 		story.CreatedAt = createdAt
 		story.UpdatedAt = updatedAt
+		story.DeletedAt = deletedAt
 	}
 
 	return &story, nil
-
 }
 
 func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
 	var exists bool
+
 	// Checks if a category with the matching id exists
 	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)`, story.Category.Id).Scan(&exists)
 	if err != nil {
@@ -135,8 +136,41 @@ func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
 
 }
 
+func (s *StoryRepo) Update(ctx context.Context, story model.Story) error {
+	var storyExists, categoryExists bool
+
+	// Check if story with given id exists
+	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM stories WHERE id = ?)`, story.Id).Scan(&storyExists)
+	if err != nil {
+		return err
+	}
+	if !storyExists {
+		return errors.New("story not found")
+	}
+
+	// Check if category with given id exists
+	err = s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)`, story.Category.Id).Scan(&categoryExists)
+	if err != nil {
+		return err
+	}
+	if !categoryExists {
+		return errors.New("category not found")
+	}
+
+	// Update story if story and category are found
+	_, err = s.db.ExecContext(ctx, `UPDATE stories SET title = ?, content = ?, thumbnail_url = ?, category_id = ? WHERE id = ?`,
+		story.Title, story.Content, story.ThumbnailUrl, story.Category.Id, story.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *StoryRepo) Delete(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM stories WHERE id = ?`, id)
+	currentTime := time.Now()
+
+	_, err := s.db.ExecContext(ctx, `UPDATE stories SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL`, currentTime, id)
 	if err != nil {
 		return err
 	}

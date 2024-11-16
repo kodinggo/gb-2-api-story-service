@@ -50,6 +50,10 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, err
 	}
 
+	if story.DeletedAt.Valid {
+		return nil, model.ErrStoryNotFound
+	}
+
 	return story, nil
 }
 
@@ -86,7 +90,67 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 	return nil
 }
 
+func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStoryInput) error {
+	log := logrus.WithFields(logrus.Fields{
+		"ctx":           ctx,
+		"id":            id,
+		"title":         in.Title,
+		"content":       in.Content,
+		"thumbnail_url": in.ThumbnailUrl,
+		"category_id":   in.CategoryId,
+	})
+
+	err := s.validateUpdateStoryInput(ctx, in)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	newStory := model.Story{
+		Id:           id,
+		Title:        in.Title,
+		Content:      in.Content,
+		ThumbnailUrl: in.ThumbnailUrl,
+		Category: model.Category{
+			Id: int64(in.CategoryId),
+		},
+	}
+
+	err = s.storyRepo.Update(ctx, newStory)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *StoryUsecase) Delete(ctx context.Context, id int64) error {
+	log := logrus.WithFields(logrus.Fields{
+		"ctx": ctx,
+		"id":  id,
+	})
+
+	err := s.storyRepo.Delete(ctx, id)
+	if err != nil {
+		log.Error("Failed to delete story:", err)
+		return err
+	}
+
+	log.Info("Story successfully deleted with ID:", id)
+
+	return nil
+}
+
 func (s *StoryUsecase) validateCreateStoryInput(ctx context.Context, in model.CreateStoryInput) error {
+	err := v.StructCtx(ctx, in)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StoryUsecase) validateUpdateStoryInput(ctx context.Context, in model.UpdateStoryInput) error {
 	err := v.StructCtx(ctx, in)
 	if err != nil {
 		return err
