@@ -26,16 +26,14 @@ func NewStoryHandler(e *echo.Group, us model.IStoryUsecase) {
 }
 
 func (s *StoryHandler) GetStories(c echo.Context) error {
-	var limit, offset int32
+	var limit, offset int64
+
 	if c.QueryParam("limit") != "" {
 		parsedLimit, err := strconv.Atoi(c.QueryParam("limit"))
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, response{
-				Status:  "Failed",
-				Message: "Invalid limit value",
-			})
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid limit value")
 		}
-		limit = int32(parsedLimit)
+		limit = int64(parsedLimit)
 	} else {
 		limit = 10 // Default limit
 	}
@@ -43,12 +41,9 @@ func (s *StoryHandler) GetStories(c echo.Context) error {
 	if c.QueryParam("offset") != "" {
 		parsedOffset, err := strconv.Atoi(c.QueryParam("offset"))
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, response{
-				Status:  "Failed",
-				Message: "Invalid offset value",
-			})
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid offset value")
 		}
-		offset = int32(parsedOffset)
+		offset = int64(parsedOffset)
 	} else {
 		offset = 0 // Default offset
 	}
@@ -57,12 +52,10 @@ func (s *StoryHandler) GetStories(c echo.Context) error {
 		Limit:  limit,
 		Offset: offset,
 	})
+
 	if err != nil {
 		fmt.Println("Error fetching stories:", err)
-		return c.JSON(http.StatusInternalServerError, response{
-			Status:  "Failed",
-			Message: "Error fetching stories",
-		})
+		return echo.NewHTTPError(http.StatusInternalServerError, "Error fetching stories")
 	}
 
 	var storyResponses []model.StoryResponse
@@ -91,7 +84,7 @@ func (s *StoryHandler) GetStories(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response{
-		Status: "Success",
+		Status: "success",
 		Data:   storyResponses,
 	})
 }
@@ -186,7 +179,7 @@ func (s *StoryHandler) UpdateStory(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response{
-		Status:  http.StatusOK,
+		Status:  "success",
 		Message: "Success Update Story",
 	})
 }
@@ -203,6 +196,6 @@ func (s *StoryHandler) DeleteStory(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusNoContent, response{
-		Status: "No Content",
+		Status: http.StatusNoContent,
 	})
 }

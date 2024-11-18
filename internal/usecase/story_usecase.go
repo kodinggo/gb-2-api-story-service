@@ -66,7 +66,7 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 		"category_id":   in.CategoryId,
 	})
 
-	err := s.validateCreateStoryInput(ctx, in)
+	err := v.StructCtx(ctx, in)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -100,7 +100,7 @@ func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStor
 		"category_id":   in.CategoryId,
 	})
 
-	err := s.validateUpdateStoryInput(ctx, in)
+	err := v.StructCtx(ctx, in)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -126,34 +126,29 @@ func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStor
 }
 
 func (s *StoryUsecase) Delete(ctx context.Context, id int64) error {
-	log := logrus.WithFields(logrus.Fields{
-		"ctx": ctx,
-		"id":  id,
-	})
-
 	err := s.storyRepo.Delete(ctx, id)
 	if err != nil {
-		log.Error("Failed to delete story:", err)
-		return err
+		logrus.WithFields(logrus.Fields{
+			"ctx": ctx,
+			"id":  id,
+		}).Error("Failed to delete story:", err)
 	}
-
-	log.Info("Story successfully deleted with ID:", id)
 
 	return nil
 }
 
-func (s *StoryUsecase) validateCreateStoryInput(ctx context.Context, in model.CreateStoryInput) error {
-	err := v.StructCtx(ctx, in)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func (s *StoryUsecase) validateCreateStoryInput(ctx context.Context, in model.CreateStoryInput) error {
+// 	err := v.StructCtx(ctx, in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (s *StoryUsecase) validateUpdateStoryInput(ctx context.Context, in model.UpdateStoryInput) error {
-	err := v.StructCtx(ctx, in)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func (s *StoryUsecase) validateUpdateStoryInput(ctx context.Context, in model.UpdateStoryInput) error {
+// 	err := v.StructCtx(ctx, in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }

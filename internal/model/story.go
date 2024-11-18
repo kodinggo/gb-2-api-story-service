@@ -56,8 +56,8 @@ type Category struct {
 }
 
 type StoryFilter struct {
-	Offset int32
-	Limit  int32
+	Offset int64
+	Limit  int64
 }
 
 type CreateStoryInput struct {
