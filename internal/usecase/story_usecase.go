@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
@@ -22,16 +24,39 @@ func NewStoryUsecase(
 	}
 }
 
-func (s *StoryUsecase) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
+func (s *StoryUsecase) FindAll(ctx context.Context, limitParam string, offsetParam string) ([]*model.Story, error) {
+	limit := int64(10)
+	offset := int64(0)
+
+	if limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil || parsedLimit <= 0 {
+			return nil, err
+		}
+		limit = int64(parsedLimit)
+	}
+
+	if offsetParam != "" {
+		parsedOffset, err := strconv.Atoi(offsetParam)
+		if err != nil || parsedOffset < 0 {
+			return nil, fmt.Errorf("invalid offset value")
+		}
+		offset = int64(parsedOffset)
+	}
+
 	log := logrus.WithFields(logrus.Fields{
-		"ctx":    ctx,
-		"limit":  filter.Limit,
-		"offset": filter.Offset,
+		"limit":  limit,
+		"offset": offset,
 	})
+
+	filter := model.StoryFilter{
+		Limit:  limit,
+		Offset: offset,
+	}
 
 	stories, err := s.storyRepo.FindAll(ctx, filter)
 	if err != nil {
-		log.Error(err)
+		log.Error("Error fetching stories: ", err)
 		return nil, err
 	}
 
@@ -51,7 +76,7 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 	}
 
 	if story.DeletedAt.Valid {
-		return nil, model.ErrStoryNotFound
+		return nil, fmt.Errorf("story not found")
 	}
 
 	return story, nil
@@ -136,19 +161,3 @@ func (s *StoryUsecase) Delete(ctx context.Context, id int64) error {
 
 	return nil
 }
-
-// func (s *StoryUsecase) validateCreateStoryInput(ctx context.Context, in model.CreateStoryInput) error {
-// 	err := v.StructCtx(ctx, in)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (s *StoryUsecase) validateUpdateStoryInput(ctx context.Context, in model.UpdateStoryInput) error {
-// 	err := v.StructCtx(ctx, in)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }

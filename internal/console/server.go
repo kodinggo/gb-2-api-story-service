@@ -32,7 +32,7 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	e := echo.New()
 
-	routeStories := e.Group("/v1/stories")
+	routeStories := e.Group("")
 
 	handlerHttp.NewStoryHandler(routeStories, storyUsecase)
 

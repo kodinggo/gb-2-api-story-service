@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,74 +17,28 @@ func NewStoryHandler(e *echo.Group, us model.IStoryUsecase) {
 		storyUsecase: us,
 	}
 
-	e.GET("", handlers.GetStories)
-	e.GET("/:id", handlers.GetStory)
-	e.POST("", handlers.CreateStory)
-	e.PUT("/:id", handlers.UpdateStory)
-	e.DELETE("/:id", handlers.DeleteStory)
+	routeStories := e.Group("/v1/stories")
+	routeStories.GET("", handlers.GetStories)
+	routeStories.GET("/:id", handlers.GetStory)
+	routeStories.POST("", handlers.CreateStory)
+	routeStories.PUT("/:id", handlers.UpdateStory)
+	routeStories.DELETE("/:id", handlers.DeleteStory)
 }
 
 func (s *StoryHandler) GetStories(c echo.Context) error {
-	var limit, offset int64
+	limitParam := c.QueryParam("limit")
+	offsetParam := c.QueryParam("offset")
 
-	if c.QueryParam("limit") != "" {
-		parsedLimit, err := strconv.Atoi(c.QueryParam("limit"))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "Invalid limit value")
-		}
-		limit = int64(parsedLimit)
-	} else {
-		limit = 10 // Default limit
-	}
-
-	if c.QueryParam("offset") != "" {
-		parsedOffset, err := strconv.Atoi(c.QueryParam("offset"))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "Invalid offset value")
-		}
-		offset = int64(parsedOffset)
-	} else {
-		offset = 0 // Default offset
-	}
-
-	stories, err := s.storyUsecase.FindAll(c.Request().Context(), model.StoryFilter{
-		Limit:  limit,
-		Offset: offset,
-	})
-
+	stories, err := s.storyUsecase.FindAll(c.Request().Context(), limitParam, offsetParam)
 	if err != nil {
-		fmt.Println("Error fetching stories:", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Error fetching stories")
-	}
-
-	var storyResponses []model.StoryResponse
-	for _, story := range stories {
-		if story.DeletedAt.Valid {
-			continue
-		}
-
-		storyResponses = append(storyResponses, model.StoryResponse{
-			Id:           story.Id,
-			Title:        story.Title,
-			Content:      story.Content,
-			ThumbnailUrl: story.ThumbnailUrl,
-			Category:     story.Category,
-			CreatedAt:    story.CreatedAt,
-			UpdatedAt:    story.UpdatedAt,
-		})
-	}
-
-	// Handle empty stories
-	if len(storyResponses) == 0 {
-		return c.JSON(http.StatusOK, response{
-			Status: "Success",
-			Data:   []interface{}{},
+		return c.JSON(http.StatusInternalServerError, response{
+			Status: "Error fetching stories",
 		})
 	}
 
 	return c.JSON(http.StatusOK, response{
 		Status: "success",
-		Data:   storyResponses,
+		Data:   stories,
 	})
 }
 
@@ -102,30 +55,14 @@ func (s *StoryHandler) GetStory(c echo.Context) error {
 
 	story, err := s.storyUsecase.FindById(c.Request().Context(), int64(parsedId))
 	if err != nil {
-		if err.Error() == model.ErrStoryNotFound.Error() {
-			return c.JSON(http.StatusNotFound, response{
-				Status: "Sorry, story not found",
-			})
-		}
-
-		return c.JSON(http.StatusNoContent, response{
-			Status: "Story Not Found",
+		return c.JSON(http.StatusNotFound, response{
+			Status: "Sorry, story not found!",
 		})
 	}
 
-	storyResponse := model.StoryResponse{
-		Id:           story.Id,
-		Title:        story.Title,
-		Content:      story.Content,
-		ThumbnailUrl: story.ThumbnailUrl,
-		Category:     story.Category,
-		CreatedAt:    story.CreatedAt,
-		UpdatedAt:    story.UpdatedAt,
-	}
-
 	return c.JSON(http.StatusOK, response{
-		Status: "Success",
-		Data:   storyResponse,
+		Status: "success",
+		Data:   story,
 	})
 }
 
@@ -147,7 +84,7 @@ func (s *StoryHandler) CreateStory(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, response{
-		Status:  http.StatusCreated,
+		Status:  "success",
 		Message: "Success Create Story",
 	})
 }
@@ -158,7 +95,7 @@ func (s *StoryHandler) UpdateStory(c echo.Context) error {
 	storyId, err := strconv.ParseInt(storyIdParam, 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, response{
-			Status:  http.StatusBadRequest,
+			Status:  "failed",
 			Message: "Invalid story ID",
 		})
 	}

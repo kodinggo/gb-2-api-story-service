@@ -3,14 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
-)
-
-var (
-	ErrInvalidInput  = errors.New("invalid input")
-	ErrUpdateInput   = errors.New("invalid update input")
-	ErrStoryNotFound = errors.New("story not found")
 )
 
 type IStoryRepository interface {
@@ -22,7 +15,7 @@ type IStoryRepository interface {
 }
 
 type IStoryUsecase interface {
-	FindAll(ctx context.Context, filter StoryFilter) ([]*Story, error)
+	FindAll(ctx context.Context, limitParam string, offsetParam string) ([]*Story, error)
 	FindById(ctx context.Context, id int64) (*Story, error)
 	Create(ctx context.Context, in CreateStoryInput) error
 	Update(ctx context.Context, id int64, in UpdateStoryInput) error
@@ -37,17 +30,7 @@ type Story struct {
 	Category     Category     `json:"category"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at"`
-	DeletedAt    sql.NullTime `json:"deleted_at,omitempty"`
-}
-
-type StoryResponse struct {
-	Id           int64     `json:"id"`
-	Title        string    `json:"title"`
-	Content      string    `json:"content"`
-	ThumbnailUrl string    `json:"thumbnail_url"`
-	Category     Category  `json:"category"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	DeletedAt    sql.NullTime `json:"-"`
 }
 
 type Category struct {
