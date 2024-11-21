@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
@@ -24,37 +23,27 @@ func NewStoryUsecase(
 	}
 }
 
-func (s *StoryUsecase) FindAll(ctx context.Context, limitParam string, offsetParam string) ([]*model.Story, error) {
-	limit := int64(10)
-	offset := int64(0)
-
-	if limitParam != "" {
-		parsedLimit, err := strconv.Atoi(limitParam)
-		if err != nil || parsedLimit <= 0 {
-			return nil, err
-		}
-		limit = int64(parsedLimit)
+func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ([]*model.Story, error) {
+	if filter.Limit <= 0 {
+		filter.Limit = model.DefaultLimit
 	}
 
-	if offsetParam != "" {
-		parsedOffset, err := strconv.Atoi(offsetParam)
-		if err != nil || parsedOffset < 0 {
-			return nil, fmt.Errorf("invalid offset value")
-		}
-		offset = int64(parsedOffset)
+	if filter.Page <= 0 {
+		filter.Page = model.DefaultPage
 	}
 
 	log := logrus.WithFields(logrus.Fields{
-		"limit":  limit,
-		"offset": offset,
+		"ctx":   ctx,
+		"limit": filter.Limit,
+		"page":  filter.Page,
 	})
 
-	filter := model.StoryFilter{
-		Limit:  limit,
-		Offset: offset,
+	storyFilter := model.FindAllParam{
+		Limit: filter.Limit,
+		Page:  filter.Page,
 	}
 
-	stories, err := s.storyRepo.FindAll(ctx, filter)
+	stories, err := s.storyRepo.FindAll(ctx, storyFilter)
 	if err != nil {
 		log.Error("Error fetching stories: ", err)
 		return nil, err

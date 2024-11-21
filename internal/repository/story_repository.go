@@ -19,11 +19,11 @@ func NewStoryRepo(db *sql.DB) model.IStoryRepository {
 	}
 }
 
-func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
+func (s *StoryRepo) FindAll(ctx context.Context, filter model.FindAllParam) ([]*model.Story, error) {
 	query := `SELECT s.id, s.title, s.content, s.thumbnail_url, c.id AS category_id, c.name AS category_name, s.created_at, s.updated_at FROM stories AS s LEFT JOIN stories AS sc ON s.id = sc.id LEFT JOIN categories AS c ON sc.category_id = c.id WHERE s.deleted_at IS NULL ORDER BY s.created_at DESC LIMIT ? OFFSET ?`
 
 	// Execute query
-	res, err := s.db.QueryContext(ctx, query, filter.Limit, filter.Offset)
+	res, err := s.db.QueryContext(ctx, query, filter.Limit, filter.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +74,7 @@ func (s *StoryRepo) FindAll(ctx context.Context, filter model.StoryFilter) ([]*m
 	}
 
 	return stories, nil
+
 }
 
 func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error) {
@@ -111,6 +112,7 @@ func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error
 	}
 
 	return &story, nil
+
 }
 
 func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
@@ -133,7 +135,6 @@ func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
 	}
 
 	return nil
-
 }
 
 func (s *StoryRepo) Update(ctx context.Context, story model.Story) error {

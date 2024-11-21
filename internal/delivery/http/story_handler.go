@@ -26,14 +26,27 @@ func NewStoryHandler(e *echo.Group, us model.IStoryUsecase) {
 }
 
 func (s *StoryHandler) GetStories(c echo.Context) error {
-	limitParam := c.QueryParam("limit")
-	offsetParam := c.QueryParam("offset")
+	var param model.FindAllParam
 
-	stories, err := s.storyUsecase.FindAll(c.Request().Context(), limitParam, offsetParam)
+	if limitParam := c.QueryParam("limit"); limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil || parsedLimit <= 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid limit value")
+		}
+		param.Limit = int64(parsedLimit)
+	}
+
+	if pageParam := c.QueryParam("page"); pageParam != "" {
+		parsedPage, err := strconv.Atoi(pageParam)
+		if err != nil || parsedPage <= 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid page value")
+		}
+		param.Page = int64(parsedPage)
+	}
+
+	stories, err := s.storyUsecase.FindAll(c.Request().Context(), param)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, response{
-			Status: "Error fetching stories",
-		})
+		return echo.NewHTTPError(http.StatusInternalServerError, "Error fetching stories")
 	}
 
 	return c.JSON(http.StatusOK, response{
@@ -47,17 +60,12 @@ func (s *StoryHandler) GetStory(c echo.Context) error {
 	parsedId, err := strconv.Atoi(id)
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, response{
-			Status:  http.StatusBadRequest,
-			Message: err.Error(),
-		})
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid story ID")
 	}
 
 	story, err := s.storyUsecase.FindById(c.Request().Context(), int64(parsedId))
 	if err != nil {
-		return c.JSON(http.StatusNotFound, response{
-			Status: "Sorry, story not found!",
-		})
+		return echo.NewHTTPError(http.StatusNotFound, "Sorry, story not found!")
 	}
 
 	return c.JSON(http.StatusOK, response{
@@ -70,17 +78,11 @@ func (s *StoryHandler) CreateStory(c echo.Context) error {
 	var input model.CreateStoryInput
 
 	if err := c.Bind(&input); err != nil {
-		return c.JSON(http.StatusBadRequest, response{
-			Status:  http.StatusBadRequest,
-			Message: err.Error(),
-		})
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	if err := s.storyUsecase.Create(c.Request().Context(), input); err != nil {
-		return c.JSON(http.StatusInternalServerError, response{
-			Status:  http.StatusInternalServerError,
-			Message: err.Error(),
-		})
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create story")
 	}
 
 	return c.JSON(http.StatusCreated, response{
@@ -94,25 +96,16 @@ func (s *StoryHandler) UpdateStory(c echo.Context) error {
 
 	storyId, err := strconv.ParseInt(storyIdParam, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, response{
-			Status:  "failed",
-			Message: "Invalid story ID",
-		})
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid story ID")
 	}
 
 	var input model.UpdateStoryInput
 	if err := c.Bind(&input); err != nil {
-		return c.JSON(http.StatusBadRequest, response{
-			Status:  http.StatusBadRequest,
-			Message: err.Error(),
-		})
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input")
 	}
 
 	if err := s.storyUsecase.Update(c.Request().Context(), storyId, input); err != nil {
-		return c.JSON(http.StatusInternalServerError, response{
-			Status:  http.StatusInternalServerError,
-			Message: err.Error(),
-		})
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update story")
 	}
 
 	return c.JSON(http.StatusOK, response{
@@ -125,11 +118,11 @@ func (s *StoryHandler) DeleteStory(c echo.Context) error {
 	id := c.Param("id")
 	parsedId, err := strconv.Atoi(id)
 	if err != nil {
-		return echo.NewHTTPError(500, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	if err := s.storyUsecase.Delete(c.Request().Context(), int64(parsedId)); err != nil {
-		return echo.NewHTTPError(500, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(http.StatusNoContent, response{

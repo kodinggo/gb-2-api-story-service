@@ -6,8 +6,13 @@ import (
 	"time"
 )
 
+const (
+	DefaultLimit = 20
+	DefaultPage  = 0
+)
+
 type IStoryRepository interface {
-	FindAll(ctx context.Context, filter StoryFilter) ([]*Story, error)
+	FindAll(ctx context.Context, filter FindAllParam) ([]*Story, error)
 	FindById(ctx context.Context, id int64) (*Story, error)
 	Create(ctx context.Context, story Story) error
 	Update(ctx context.Context, story Story) error
@@ -15,7 +20,7 @@ type IStoryRepository interface {
 }
 
 type IStoryUsecase interface {
-	FindAll(ctx context.Context, limitParam string, offsetParam string) ([]*Story, error)
+	FindAll(ctx context.Context, filter FindAllParam) ([]*Story, error)
 	FindById(ctx context.Context, id int64) (*Story, error)
 	Create(ctx context.Context, in CreateStoryInput) error
 	Update(ctx context.Context, id int64, in UpdateStoryInput) error
@@ -38,9 +43,9 @@ type Category struct {
 	Name string `json:"name"`
 }
 
-type StoryFilter struct {
-	Offset int64
-	Limit  int64
+type FindAllParam struct {
+	Limit int64
+	Page  int64
 }
 
 type CreateStoryInput struct {
