@@ -12,7 +12,7 @@ type StoryHandler struct {
 	storyUsecase model.IStoryUsecase
 }
 
-func NewStoryHandler(e *echo.Group, us model.IStoryUsecase) {
+func NewStoryHandler(e *echo.Echo, us model.IStoryUsecase) {
 	handlers := &StoryHandler{
 		storyUsecase: us,
 	}
