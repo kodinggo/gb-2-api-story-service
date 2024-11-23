@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
@@ -10,16 +11,19 @@ import (
 )
 
 type StoryUsecase struct {
-	storyRepo model.IStoryRepository
+	storyRepo       model.IStoryRepository
+	categoryUsecase model.ICategoryUsecase
 }
 
 var v = validator.New()
 
 func NewStoryUsecase(
 	storyRepo model.IStoryRepository,
+	categoryUsecase model.ICategoryUsecase,
 ) model.IStoryUsecase {
 	return &StoryUsecase{
-		storyRepo: storyRepo,
+		storyRepo:       storyRepo,
+		categoryUsecase: categoryUsecase,
 	}
 }
 
@@ -82,8 +86,19 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 
 	err := v.StructCtx(ctx, in)
 	if err != nil {
-		log.Error(err)
+		log.Error("Validation error:", err)
 		return err
+	}
+
+	category, err := s.categoryUsecase.FindById(ctx, int64(in.CategoryId))
+	if err != nil {
+		log.Error("Error fetching category:", err)
+		return err
+	}
+
+	if category == nil {
+		log.Error("Category not found", err)
+		return errors.New("category not found")
 	}
 
 	story := model.Story{
@@ -97,7 +112,7 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 
 	err = s.storyRepo.Create(ctx, story)
 	if err != nil {
-		log.Error(err)
+		log.Error("Error creating story:", err)
 		return err
 	}
 
@@ -116,11 +131,22 @@ func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStor
 
 	err := v.StructCtx(ctx, in)
 	if err != nil {
-		log.Error(err)
+		log.Error("Validation error:", err)
 		return err
 	}
 
-	newStory := model.Story{
+	category, err := s.categoryUsecase.FindById(ctx, int64(in.CategoryId))
+	if err != nil {
+		log.Error("Error fetching category:", err)
+		return err
+	}
+
+	if category == nil {
+		log.Error("Category not found")
+		return errors.New("category not found")
+	}
+
+	updatedStory := model.Story{
 		Id:           id,
 		Title:        in.Title,
 		Content:      in.Content,
@@ -130,9 +156,9 @@ func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStor
 		},
 	}
 
-	err = s.storyRepo.Update(ctx, newStory)
+	err = s.storyRepo.Update(ctx, updatedStory)
 	if err != nil {
-		log.Error(err)
+		log.Error("Error updating story:", err)
 		return err
 	}
 

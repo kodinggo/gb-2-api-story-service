@@ -27,12 +27,15 @@ func httpServer(cmd *cobra.Command, args []string) {
 	defer mysql.Close()
 
 	storyRepo := repository.NewStoryRepo(mysql)
+	categoryRepo := repository.NewCategoryRepo(mysql)
 
-	storyUsecase := usecase.NewStoryUsecase(storyRepo)
+	storyUsecase := usecase.NewStoryUsecase(storyRepo, categoryRepo)
+	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 
 	e := echo.New()
 
 	handlerHttp.NewStoryHandler(e, storyUsecase)
+	handlerHttp.NewCategoryHandler(e, categoryUsecase)
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
