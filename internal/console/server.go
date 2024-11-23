@@ -32,9 +32,7 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	e := echo.New()
 
-	routeStories := e.Group("/v1/stories")
-
-	handlerHttp.NewStoryHandler(routeStories, storyUsecase)
+	handlerHttp.NewStoryHandler(e, storyUsecase)
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
