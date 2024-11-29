@@ -50,6 +50,13 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, err
 	}
 
+	// TODO: Resolve field comments by calling grpc from comment-service
+	/*
+	1. go get service comment "go get github.com/kodinggo/gb-2-api-comment-service"
+ 	2. setup koneksi ke server grpc comment service (lihat https://github.com/kodinggo/rest-api-service-golang-private-1/blob/main/internal/cmd/server.go#L138C6-L138C26)
+  	3. grpc client dipanggil di story detail usecase
+ 	*/
+
 	return story, nil
 }
 
