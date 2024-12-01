@@ -1,6 +1,2 @@
 config.yml
 dbconfig.yml
-*.yml
-*.json
-go.mod
-go.sum

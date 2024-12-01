@@ -8,7 +8,7 @@ import (
 
 const (
 	DefaultLimit = 20
-	DefaultPage  = 0
+	DefaultPage  = 1
 )
 
 type IStoryRepository interface {
@@ -33,9 +33,24 @@ type Story struct {
 	Content      string       `json:"content"`
 	ThumbnailUrl string       `json:"thumbnail_url"`
 	Category     Category     `json:"category"`
+	Author       Account      `json:"author"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at"`
 	DeletedAt    sql.NullTime `json:"-"`
+}
+
+type AccountUsecase interface {
+	FindByID(id int64, db string) (*Account, error)
+}
+
+type Account struct {
+	Id         int64  `json:"id"`
+	Fullname   string `json:"fullname"`
+	SortBio    string `json:"sort_bio"`
+	Gender     string `json:"gender"`
+	PictureUrl string `json:"picture_url"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
 }
 
 type Category struct {

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
@@ -116,20 +115,7 @@ func (s *StoryRepo) FindById(ctx context.Context, id int64) (*model.Story, error
 }
 
 func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
-	var exists bool
-
-	// Checks if a category with the matching id exists
-	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)`, story.Category.Id).Scan(&exists)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return errors.New("category not found")
-	}
-
-	_, err = s.db.ExecContext(ctx, `INSERT INTO stories (title, content, thumbnail_url, category_id) VALUES (?, ?, ?, ?)`,
-		story.Title, story.Content, story.ThumbnailUrl, story.Category.Id)
+	_, err := s.db.ExecContext(ctx, `INSERT INTO stories (title, content, thumbnail_url, category_id) VALUES (?, ?, ?, ?)`, story.Title, story.Content, story.ThumbnailUrl, story.Category.Id)
 	if err != nil {
 		return err
 	}
@@ -138,29 +124,7 @@ func (s *StoryRepo) Create(ctx context.Context, story model.Story) error {
 }
 
 func (s *StoryRepo) Update(ctx context.Context, story model.Story) error {
-	var storyExists, categoryExists bool
-
-	// Check if story with given id exists
-	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM stories WHERE id = ?)`, story.Id).Scan(&storyExists)
-	if err != nil {
-		return err
-	}
-	if !storyExists {
-		return errors.New("story not found")
-	}
-
-	// Check if category with given id exists
-	err = s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)`, story.Category.Id).Scan(&categoryExists)
-	if err != nil {
-		return err
-	}
-	if !categoryExists {
-		return errors.New("category not found")
-	}
-
-	// Update story if story and category are found
-	_, err = s.db.ExecContext(ctx, `UPDATE stories SET title = ?, content = ?, thumbnail_url = ?, category_id = ? WHERE id = ?`,
-		story.Title, story.Content, story.ThumbnailUrl, story.Category.Id, story.Id)
+	_, err := s.db.ExecContext(ctx, `UPDATE stories SET title = ?, content = ?, thumbnail_url = ?, category_id = ? WHERE id = ?`, story.Title, story.Content, story.ThumbnailUrl, story.Category.Id, story.Id)
 	if err != nil {
 		return err
 	}
