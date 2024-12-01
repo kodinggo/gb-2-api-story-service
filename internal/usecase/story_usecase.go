@@ -64,6 +64,7 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, err
 	}
 
+
 	if story.DeletedAt.Valid {
 		return nil, fmt.Errorf("story not found")
 	}
