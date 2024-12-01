@@ -1,8 +1,7 @@
-server:
- port: 
-database:
- user: 
- password:
- host: 
- port: 
- dbname: 
+env: development
+port: 3306
+mysql:
+  dbhost: 127.0.0.1
+  dbuser: root
+  dbpass: root
+  dbname: story_service_db
