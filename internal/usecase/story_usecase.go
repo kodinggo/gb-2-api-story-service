@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
@@ -22,16 +23,29 @@ func NewStoryUsecase(
 	}
 }
 
-func (s *StoryUsecase) FindAll(ctx context.Context, filter model.StoryFilter) ([]*model.Story, error) {
+func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ([]*model.Story, error) {
+	if filter.Limit <= 0 {
+		filter.Limit = model.DefaultLimit
+	}
+
+	if filter.Page <= 0 {
+		filter.Page = model.DefaultPage
+	}
+
 	log := logrus.WithFields(logrus.Fields{
-		"ctx":    ctx,
-		"limit":  filter.Limit,
-		"offset": filter.Offset,
+		"ctx":   ctx,
+		"limit": filter.Limit,
+		"page":  filter.Page,
 	})
 
-	stories, err := s.storyRepo.FindAll(ctx, filter)
+	storyFilter := model.FindAllParam{
+		Limit: filter.Limit,
+		Page:  filter.Page,
+	}
+
+	stories, err := s.storyRepo.FindAll(ctx, storyFilter)
 	if err != nil {
-		log.Error(err)
+		log.Error("Error fetching stories: ", err)
 		return nil, err
 	}
 
@@ -50,12 +64,10 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, err
 	}
 
-	// TODO: Resolve field comments by calling grpc from comment-service
-	/*
-	1. go get service comment "go get github.com/kodinggo/gb-2-api-comment-service"
- 	2. setup koneksi ke server grpc comment service (lihat https://github.com/kodinggo/rest-api-service-golang-private-1/blob/main/internal/cmd/server.go#L138C6-L138C26)
-  	3. grpc client dipanggil di story detail usecase
- 	*/
+
+	if story.DeletedAt.Valid {
+		return nil, fmt.Errorf("story not found")
+	}
 
 	return story, nil
 }
@@ -69,7 +81,7 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 		"category_id":   in.CategoryId,
 	})
 
-	err := s.validateCreateStoryInput(ctx, in)
+	err := v.StructCtx(ctx, in)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -93,10 +105,49 @@ func (s *StoryUsecase) Create(ctx context.Context, in model.CreateStoryInput) er
 	return nil
 }
 
-func (s *StoryUsecase) validateCreateStoryInput(ctx context.Context, in model.CreateStoryInput) error {
+func (s *StoryUsecase) Update(ctx context.Context, id int64, in model.UpdateStoryInput) error {
+	log := logrus.WithFields(logrus.Fields{
+		"ctx":           ctx,
+		"id":            id,
+		"title":         in.Title,
+		"content":       in.Content,
+		"thumbnail_url": in.ThumbnailUrl,
+		"category_id":   in.CategoryId,
+	})
+
 	err := v.StructCtx(ctx, in)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
+
+	newStory := model.Story{
+		Id:           id,
+		Title:        in.Title,
+		Content:      in.Content,
+		ThumbnailUrl: in.ThumbnailUrl,
+		Category: model.Category{
+			Id: int64(in.CategoryId),
+		},
+	}
+
+	err = s.storyRepo.Update(ctx, newStory)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *StoryUsecase) Delete(ctx context.Context, id int64) error {
+	err := s.storyRepo.Delete(ctx, id)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"ctx": ctx,
+			"id":  id,
+		}).Error("Failed to delete story:", err)
+	}
+
 	return nil
 }
