@@ -52,7 +52,7 @@ func (c *CategoryUsecase) Create(ctx context.Context, category model.Categories)
 		"name": category.Name,
 	})
 
-	err := c.validateCreateCategoryInput(ctx, category)
+	err := v.StructCtx(ctx, category)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -78,7 +78,7 @@ func (c *CategoryUsecase) Update(ctx context.Context, category model.Categories)
 		"name": category.Name,
 	})
 
-	err := c.validateUpdateCategoryInput(ctx, category)
+	err := v.StructCtx(ctx, category)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -107,24 +107,6 @@ func (c *CategoryUsecase) Delete(ctx context.Context, id int64) error {
 	err := c.CategoryRepo.Delete(ctx, id)
 	if err != nil {
 		log.Error(err)
-		return err
-	}
-
-	return nil
-}
-
-func (c *CategoryUsecase) validateCreateCategoryInput(ctx context.Context, category model.Categories) error {
-	err := v.StructCtx(ctx, category)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *CategoryUsecase) validateUpdateCategoryInput(ctx context.Context, category model.Categories) error {
-	err := v.StructCtx(ctx, category)
-	if err != nil {
 		return err
 	}
 

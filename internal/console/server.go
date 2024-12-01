@@ -39,7 +39,7 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
-	wg.Add(1)
+	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
@@ -57,5 +57,4 @@ func httpServer(cmd *cobra.Command, args []string) {
 			logrus.Error(err.Error())
 		}
 	}
-
 }

@@ -72,8 +72,6 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, fmt.Errorf("story not found")
 	}
 
-	// TODO: Resolve field comments by calling grpc from comment-service
-
 	return story, nil
 }
 
