@@ -1,0 +1,9 @@
+env: development
+port: 3306
+mysql:
+  dbhost: 127.0.0.1
+  dbuser: root
+  dbpass: $Wahyu123
+  dbname: story
+comment_service:
+  grpc_host: localhost:7778

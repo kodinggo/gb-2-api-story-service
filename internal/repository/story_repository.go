@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
@@ -71,7 +72,7 @@ func (s *StoryRepo) FindAll(ctx context.Context, filter model.FindAllParam) ([]*
 	for _, story := range storyMap {
 		stories = append(stories, story)
 	}
-
+	fmt.Println(stories)
 	return stories, nil
 
 }
