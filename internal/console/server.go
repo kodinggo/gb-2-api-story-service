@@ -1,15 +1,21 @@
 package console
 
 import (
+	"fmt"
+	"log"
 	"sync"
 
+	"github.com/kodinggo/gb-2-api-comment-service/pb/comment_service"
 	"github.com/kodinggo/gb-2-api-story-service/db"
+	"github.com/kodinggo/gb-2-api-story-service/internal/config"
 	handlerHttp "github.com/kodinggo/gb-2-api-story-service/internal/delivery/http"
 	"github.com/kodinggo/gb-2-api-story-service/internal/repository"
 	"github.com/kodinggo/gb-2-api-story-service/internal/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func init() {
@@ -28,8 +34,8 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	storyRepo := repository.NewStoryRepo(mysql)
 	categoryRepo := repository.NewCategoryRepo(mysql)
-
-	storyUsecase := usecase.NewStoryUsecase(storyRepo, categoryRepo)
+	grpcCommentClient :=initgRPCCommentClient()
+	storyUsecase := usecase.NewStoryUsecase(storyRepo, grpcCommentClient,categoryRepo)
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 
 	e := echo.New()
@@ -43,12 +49,13 @@ func httpServer(cmd *cobra.Command, args []string) {
 
 	go func() {
 		defer wg.Done()
+		fmt.Println(config.CommentgRPCHost())
+		fmt.Println("database connected ready to use")
 		err := e.Start(":3000")
 		if err != nil {
 			errCh <- err
 		}
 	}()
-
 	wg.Wait()
 	close(errCh)
 
@@ -57,4 +64,13 @@ func httpServer(cmd *cobra.Command, args []string) {
 			logrus.Error(err.Error())
 		}
 	}
+}
+func initgRPCCommentClient() comment_service.CommentServiceClient {
+	// connect to grpc server without credentials
+	conn, err := grpc.NewClient(config.CommentgRPCHost(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Panicf("failed to open connection grpc server, error %v", err)
+	}
+	// init grpc client as package dependency from grpc-server repository
+	return comment_service.NewCommentServiceClient(conn)
 }

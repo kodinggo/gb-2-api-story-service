@@ -6,28 +6,32 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kodinggo/gb-2-api-comment-service/pb/comment_service"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
 type StoryUsecase struct {
 	storyRepo       model.IStoryRepository
-	categoryUsecase model.ICategoryUsecase
+	categoryUsecase model.ICategoryRepository
+	grpcCommentClient comment_service.CommentServiceClient
 }
 
 var v = validator.New()
 
 func NewStoryUsecase(
 	storyRepo model.IStoryRepository,
+	grpcCommentClient comment_service.CommentServiceClient,
 	categoryUsecase model.ICategoryUsecase,
 ) model.IStoryUsecase {
 	return &StoryUsecase{
 		storyRepo:       storyRepo,
 		categoryUsecase: categoryUsecase,
+		grpcCommentClient:grpcCommentClient,
 	}
 }
 
-func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ([]*model.Story, error) {
+func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ( []*model.Story,  error) {
 	if filter.Limit <= 0 {
 		filter.Limit = model.DefaultLimit
 	}
@@ -53,7 +57,32 @@ func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) (
 		return nil, err
 	}
 
-	return stories, nil
+	for idx,result := range stories{
+		// Calls gRPC	
+	commentPb,err:= s.grpcCommentClient.FindAllByStoryID(ctx,&comment_service.FindAllByStoryIDRequest{
+		StoryId: result.Id,
+	})
+	if err != nil || commentPb == nil{
+	 log.Errorf("failed when resolve comments,storyID:%d,error:%v",result.Id,err)
+	}
+	//Convert protobuf to main comment entity
+	var comments []model.Comment
+	for _, pbComment := range commentPb.Comments{
+		comments = append(comments, model.Comment{
+			ID: pbComment.Id,
+			Comment: pbComment.Comment,
+		})
+	}
+	stories[idx].Comments = comments
+	}
+	fmt.Println(stories)
+	return stories,nil
+	// TODO: Resolve field comments by calling grpc from comment-service
+	/*
+	1. go get service comment "go get github.com/kodinggo/gb-2-api-comment-service"
+ 	2. setup koneksi ke server grpc comment service (lihat https://github.com/kodinggo/rest-api-service-golang-private-1/blob/main/internal/cmd/server.go#L138C6-L138C26)
+  	3. grpc client dipanggil di story detail usecase
+ 	*/
 }
 
 func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, error) {
