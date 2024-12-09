@@ -82,11 +82,13 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 	commentPb, err := s.grpcCommentClient.FindAllByStoryID(ctx, &comment_service.FindAllByStoryIDRequest{
 		StoryId: id,
 	})
-	if err != nil || commentPb == nil {
-		log.Errorf("failed when resolve comments,storyID:%d,error:%v", id, err)
+	if err != nil  {
+		return nil,err
 	}
-	comments := helper.ConvertPbCommentToModelComments(commentPb.Comments)
-	story.Comments = comments
+	if commentPb != nil {
+		comments := helper.ConvertPbCommentToModelComments(commentPb.Comments)
+		story.Comments = comments
+	}
 	return story, nil
 }
 
