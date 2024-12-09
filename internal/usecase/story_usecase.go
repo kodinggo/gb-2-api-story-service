@@ -7,13 +7,14 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/kodinggo/gb-2-api-comment-service/pb/comment_service"
+	"github.com/kodinggo/gb-2-api-story-service/internal/helper"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
 type StoryUsecase struct {
-	storyRepo       model.IStoryRepository
-	categoryUsecase model.ICategoryRepository
+	storyRepo         model.IStoryRepository
+	categoryUsecase   model.ICategoryRepository
 	grpcCommentClient comment_service.CommentServiceClient
 }
 
@@ -25,13 +26,13 @@ func NewStoryUsecase(
 	categoryUsecase model.ICategoryUsecase,
 ) model.IStoryUsecase {
 	return &StoryUsecase{
-		storyRepo:       storyRepo,
-		categoryUsecase: categoryUsecase,
-		grpcCommentClient:grpcCommentClient,
+		storyRepo:         storyRepo,
+		categoryUsecase:   categoryUsecase,
+		grpcCommentClient: grpcCommentClient,
 	}
 }
 
-func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ( []*model.Story,  error) {
+func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) ([]*model.Story, error) {
 	if filter.Limit <= 0 {
 		filter.Limit = model.DefaultLimit
 	}
@@ -51,38 +52,18 @@ func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) (
 		Page:  filter.Page,
 	}
 
-	stories, err := s.storyRepo.FindAll(ctx, storyFilter)
+	results, err := s.storyRepo.FindAll(ctx, storyFilter)
 	if err != nil {
 		log.Error("Error fetching stories: ", err)
 		return nil, err
 	}
-
-	for idx,result := range stories{
-		// Calls gRPC	
-	commentPb,err:= s.grpcCommentClient.FindAllByStoryID(ctx,&comment_service.FindAllByStoryIDRequest{
-		StoryId: result.Id,
-	})
-	if err != nil || commentPb == nil{
-	 log.Errorf("failed when resolve comments,storyID:%d,error:%v",result.Id,err)
-	}
-	//Convert protobuf to main comment entity
-	var comments []model.Comment
-	for _, pbComment := range commentPb.Comments{
-		comments = append(comments, model.Comment{
-			ID: pbComment.Id,
-			Comment: pbComment.Comment,
-		})
-	}
-	stories[idx].Comments = comments
-	}
-	fmt.Println(stories)
-	return stories,nil
+	return results, nil
 	// TODO: Resolve field comments by calling grpc from comment-service
 	/*
-	1. go get service comment "go get github.com/kodinggo/gb-2-api-comment-service"
- 	2. setup koneksi ke server grpc comment service (lihat https://github.com/kodinggo/rest-api-service-golang-private-1/blob/main/internal/cmd/server.go#L138C6-L138C26)
-  	3. grpc client dipanggil di story detail usecase
- 	*/
+			1. go get service comment "go get github.com/kodinggo/gb-2-api-comment-service"
+		 	2. setup koneksi ke server grpc comment service (lihat https://github.com/kodinggo/rest-api-service-golang-private-1/blob/main/internal/cmd/server.go#L138C6-L138C26)
+		  	3. grpc client dipanggil di story detail usecase
+	*/
 }
 
 func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, error) {
@@ -90,6 +71,12 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		"ctx": ctx,
 		"id":  id,
 	})
+	commentPb, err := s.grpcCommentClient.FindAllByStoryID(ctx, &comment_service.FindAllByStoryIDRequest{
+		StoryId: id,
+	})
+	if err != nil || commentPb == nil {
+		log.Errorf("failed when resolve comments,storyID:%d,error:%v", id, err)
+	}
 
 	story, err := s.storyRepo.FindById(ctx, id)
 	if err != nil {
@@ -97,11 +84,11 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		return nil, err
 	}
 
-
 	if story.DeletedAt.Valid {
 		return nil, fmt.Errorf("story not found")
 	}
-
+	comments := helper.ConvertPbCommentToModelComments(commentPb.Comments)
+	story.Comments = comments
 	return story, nil
 }
 
