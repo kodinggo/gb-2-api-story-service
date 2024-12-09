@@ -71,21 +71,19 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		"ctx": ctx,
 		"id":  id,
 	})
-	commentPb, err := s.grpcCommentClient.FindAllByStoryID(ctx, &comment_service.FindAllByStoryIDRequest{
-		StoryId: id,
-	})
-	if err != nil || commentPb == nil {
-		log.Errorf("failed when resolve comments,storyID:%d,error:%v", id, err)
-	}
-
 	story, err := s.storyRepo.FindById(ctx, id)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-
 	if story.DeletedAt.Valid {
 		return nil, fmt.Errorf("story not found")
+	}
+	commentPb, err := s.grpcCommentClient.FindAllByStoryID(ctx, &comment_service.FindAllByStoryIDRequest{
+		StoryId: id,
+	})
+	if err != nil || commentPb == nil {
+		log.Errorf("failed when resolve comments,storyID:%d,error:%v", id, err)
 	}
 	comments := helper.ConvertPbCommentToModelComments(commentPb.Comments)
 	story.Comments = comments
