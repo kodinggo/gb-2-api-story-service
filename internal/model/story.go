@@ -32,7 +32,7 @@ type Story struct {
 	Title        string       `json:"title"`
 	Content      string       `json:"content"`
 	ThumbnailUrl string       `json:"thumbnail_url"`
-	Comments     []Comment      `json:"comments"`
+	Comments     []*Comment   `json:"comments"`
 	Category     Category     `json:"category"`
 	Author       Account      `json:"author"`
 	CreatedAt    time.Time    `json:"created_at"`
@@ -42,7 +42,6 @@ type Story struct {
 type AccountUsecase interface {
 	FindByID(id int64, db string) (*Account, error)
 }
-
 
 type Account struct {
 	Id         int64  `json:"id"`
@@ -78,7 +77,7 @@ type UpdateStoryInput struct {
 	CategoryId   int    `json:"category_id" validate:"required"`
 }
 
-type Comment struct{
+type Comment struct {
 	ID        int64      `json:"id"`
 	Comment   string     `json:"comment" validate:"required"`
 	StoryID   int64      `json:"story_id,omitempty" validate:"required" `
