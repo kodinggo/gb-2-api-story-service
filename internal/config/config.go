@@ -25,3 +25,6 @@ func GetDbUser() string {
 func GetDbPassword() string {
 	return viper.GetString("mysql.dbpass")
 }
+func CommentgRPCHost()string{
+	return viper.GetString("comment_service.grpc_host")
+}

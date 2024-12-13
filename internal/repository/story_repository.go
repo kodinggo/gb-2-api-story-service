@@ -71,7 +71,6 @@ func (s *StoryRepo) FindAll(ctx context.Context, filter model.FindAllParam) ([]*
 	for _, story := range storyMap {
 		stories = append(stories, story)
 	}
-
 	return stories, nil
 
 }

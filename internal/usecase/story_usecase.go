@@ -6,24 +6,29 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kodinggo/gb-2-api-comment-service/pb/comment_service"
+	"github.com/kodinggo/gb-2-api-story-service/internal/helper"
 	"github.com/kodinggo/gb-2-api-story-service/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
 type StoryUsecase struct {
-	storyRepo       model.IStoryRepository
-	categoryUsecase model.ICategoryUsecase
+	storyRepo         model.IStoryRepository
+	categoryUsecase   model.ICategoryRepository
+	grpcCommentClient comment_service.CommentServiceClient
 }
 
 var v = validator.New()
 
 func NewStoryUsecase(
 	storyRepo model.IStoryRepository,
+	grpcCommentClient comment_service.CommentServiceClient,
 	categoryUsecase model.ICategoryUsecase,
 ) model.IStoryUsecase {
 	return &StoryUsecase{
-		storyRepo:       storyRepo,
-		categoryUsecase: categoryUsecase,
+		storyRepo:         storyRepo,
+		categoryUsecase:   categoryUsecase,
+		grpcCommentClient: grpcCommentClient,
 	}
 }
 
@@ -47,13 +52,34 @@ func (s *StoryUsecase) FindAll(ctx context.Context, filter model.FindAllParam) (
 		Page:  filter.Page,
 	}
 
-	stories, err := s.storyRepo.FindAll(ctx, storyFilter)
+	story, err := s.storyRepo.FindAll(ctx, storyFilter)
 	if err != nil {
 		log.Error("Error fetching stories: ", err)
 		return nil, err
 	}
+	var storyIDs []int64
+	for _,results := range story{
+		storyIDs = append(storyIDs, results.Id)
+	}
+	commentPb,err := s.grpcCommentClient.FindAllByStoryIDs(ctx,&comment_service.FindAllByStoryIDsRequest{
+		StoryId: storyIDs,
+	})
+	if err !=nil{
+		log.Error("err fetching comments :",err)
+		return nil,err
+	}
 
-	return stories, nil
+	if commentPb != nil{
+	commentModel := helper.ConvertPbCommentToModelComments(commentPb.Comments)
+	commentsByStoryID := make(map[int64][]*model.Comment)
+	for _, comment := range commentModel {
+		commentsByStoryID[comment.StoryID] = append(commentsByStoryID[comment.StoryID], comment)
+	}
+	for _, storyComment := range story {
+		storyComment.Comments  = commentsByStoryID[storyComment.Id]
+	}
+}
+	return story, nil
 }
 
 func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, error) {
@@ -61,18 +87,29 @@ func (s *StoryUsecase) FindById(ctx context.Context, id int64) (*model.Story, er
 		"ctx": ctx,
 		"id":  id,
 	})
-
 	story, err := s.storyRepo.FindById(ctx, id)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-
-
 	if story.DeletedAt.Valid {
 		return nil, fmt.Errorf("story not found")
 	}
-
+	commentPb, err := s.grpcCommentClient.FindAllByStoryID(ctx, &comment_service.FindAllByStoryIDRequest{
+		StoryId: id,
+	})
+	
+	if err != nil  {
+		return nil,err
+	}
+	if commentPb != nil {
+		commentPb := helper.ConvertPbCommentToModelComments(commentPb.Comments)
+		var commentList []*model.Comment
+        for _, comment := range commentPb {
+            commentList = append(commentList, comment) // Dereferensi pointer
+        }
+		story.Comments = commentList
+	}
 	return story, nil
 }
 
